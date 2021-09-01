@@ -1,5 +1,5 @@
 # Grammar
-ANTLR4 grammar and build tools for the Asylum Language.
+ANTLR4 grammar and build tools for the Asylum Language. Asylum Programming Language discord server: https://discord.gg/cn5wmz6SqA
 
 ## Background
 Compilers use tokenizers, lexers, and parsers in order to read code from an input stream, and output an AST or Abstract Syntax Tree. A tokenizer takes the input code and divides symbols into "tokens". For example, "for", "if", "fn", "+", and a variable name can all be said to be tokens. A lexer reads these tokens into valid "sentences" such as "x += 5;". From there, a parser takes these "sentences" and converts them into an AST, which the compiler (StraitJacket) could then use to compile the code into working LLVM IR or machine code.
