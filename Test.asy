@@ -142,8 +142,8 @@ pub fn main() {
 	s32 res1, s32 res2 = 3 ** 2 * (2 + 1), 4 % 1 / 7 & 1;
 	u32 c = a**b;
 
-	if (&foo == &bar) (a++);
-	if foo(134)("qwerty")(3)(0x696969);
+	if &foo == &bar (a++);
+	if foo(134)("qwerty")(3)(0x696969) {}
 	
 	if (sixty == "9")owo();
 }
