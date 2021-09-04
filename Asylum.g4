@@ -148,8 +148,8 @@ code_body
 
 // Code statement.
 code_statement
-	:	';'									#BlankStatement
-	|	variable_declaration ';'			#VariableDeclarationStatement
+//	:	';'									#BlankStatement - Ok, so this causes an issue as it turns things we want to be individual code statements into part of an expression.
+	:	variable_declaration ';'			#VariableDeclarationStatement
 	|	loop								#LoopStatement
 	|	while_loop							#WhileLoopStatement
 	|	do_while_loop						#DoWhileLoopStatement
@@ -266,7 +266,7 @@ generic_specifier
 expression
 	:	'(' expression ')'													#ExprParenthesis
 	|	primary_expression													#ExprPrimary
-//	|	expression '(' expression ')'										#ExprCallReturnedFunction - The problem with this is that it shouldn't allow spaces for the calls, yet it does.
+	|	expression '(' expression ')'										#ExprCallReturnedFunction
 	|	expression (OP_PLUS_PLUS | OP_MINUS_MINUS | OP_NOT)					#ExprSubprimary
 	|	<assoc=right> unary_expression										#ExprUnary // Something is weird here with the order of operations.
 	|	expression OP_RANGE '='? expression									#ExprRange
