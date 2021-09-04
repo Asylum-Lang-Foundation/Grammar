@@ -4,7 +4,7 @@ grammar Asylum;
 	To Do List:
 		* Embedded Functions
 		* Macros?
-		* Continues
+		* Fix
 
 	Notes:
 		* Tuple expressions that return void are ignored (comma operator).
@@ -148,15 +148,14 @@ code_body
 
 // Code statement.
 code_statement
-	:	function_call ';' 					#FunctionCallStatement
-	|	constructor_with_initializers ';'	#ConstructorStatement
+	:	';'									#BlankStatement
 	|	variable_declaration ';'			#VariableDeclarationStatement
-	|	variable_assignment ';'				#VariableAssignmentStatement
 	|	loop								#LoopStatement
 	|	while_loop							#WhileLoopStatement
 	|	do_while_loop						#DoWhileLoopStatement
 	|	for_loop							#ForLoopStatement
 	|	break_statement 					#BreakStatement
+	|	continue_statement					#ContinueStatement
 	|	if_statement						#IfStatement
 	|	switch_case							#SwitchCaseStatement
 	|	expression ';'						#ExpressionStatement
@@ -171,7 +170,7 @@ loop
 
 // While loop.
 while_loop
-	:	WHILE '(' expression ')' code_body
+	:	WHILE expression code_body
 	;
 
 // Do while loop.
@@ -182,12 +181,19 @@ do_while_loop
 // For loop.
 for_loop
 	:	FOR '(' (variable_assignment | variable_declaration)? ';' expression ';' expression ')' code_body	#TraditionalForLoop
+	|	FOR (variable_assignment | variable_declaration)? ';' expression ';' expression code_body			#TraditionalForLoopNoParens
 	|	FOR '(' (variable_parameter | IDENTIFIER) IN expression ')' code_body								#ForEachLoop
+	|	FOR (variable_parameter | IDENTIFIER) IN expression code_body										#ForEachLoopNoParens
 	;
 
 //Break.
 break_statement
 	:	BREAK INTEGER? ';'
+	;
+
+// Continue.
+continue_statement
+	:	CONTINUE ';'
 	;
 
 // If statement.
@@ -197,7 +203,8 @@ if_statement
 
 // Switch case.
 switch_case
-	:	SWITCH '(' variable_or_function (OP_LAMBDA IDENTIFIER)? ')' '{' switch_rule+ '}'
+	:	SWITCH '(' variable_or_function (OP_LAMBDA IDENTIFIER)? ')' '{' switch_rule+ '}'	#SwitchCase
+	|	SWITCH  variable_or_function (OP_LAMBDA IDENTIFIER)? '{' switch_rule+ '}'			#SwitchCaseNoParens
 	;
 
 // Switch rule.
@@ -259,8 +266,9 @@ generic_specifier
 expression
 	:	'(' expression ')'													#ExprParenthesis
 	|	primary_expression													#ExprPrimary
+//	|	expression '(' expression ')'										#ExprCallReturnedFunction - The problem with this is that it shouldn't allow spaces for the calls, yet it does.
 	|	expression (OP_PLUS_PLUS | OP_MINUS_MINUS | OP_NOT)					#ExprSubprimary
-	|	unary_expression													#ExprUnary
+	|	<assoc=right> unary_expression										#ExprUnary // Something is weird here with the order of operations.
 	|	expression OP_RANGE '='? expression									#ExprRange
 	|	expression (OP_MUL | OP_DIV | OP_MOD) expression					#ExprMultiplicative
 	|	expression (OP_ADD | OP_SUB) expression								#ExprAdditive
@@ -275,7 +283,8 @@ expression
 	|	expression OP_NULL_CHECK expression									#ExprNullCheck
 	|	<assoc=right> expression '?' expression ':' expression				#ExprTernary
 	|	expression OP_LAMBDA expression										#ExprLambda
-//	|	expression ',' expression											#ExprComma
+	|	<assoc=right> expression assignment_operator expression				#ExprAssignment
+	|	expression ',' expression											#ExprComma
 	|	UNSAFE? '{' code_statement* '}'										#ExprCode
 	|	INTEGER																#ExprInteger
 	|	STRING																#ExprString
@@ -288,7 +297,7 @@ primary_expression
 
 // Unary expression.
 unary_expression
-	: <assoc=right> OP_ADD expression | <assoc=right> OP_SUB expression | <assoc=right> OP_NOT expression | <assoc=right> OP_TILDE expression | <assoc=right> OP_PLUS_PLUS expression | <assoc=right> OP_MINUS_MINUS expression | <assoc=right> OP_MEMBER_ACCESS expression | <assoc=right> '(' variable_type ')' expression | <assoc=right> OP_ADDRESS_OF expression | <assoc=right> OP_REFERENCE_POINTER expression | <assoc=right> OP_MUL expression | defined_constants
+	: OP_ADD expression | OP_SUB expression | OP_NOT expression | OP_TILDE expression | OP_PLUS_PLUS expression | OP_MINUS_MINUS expression | OP_MEMBER_ACCESS expression | '(' variable_type ')' expression | OP_ADDRESS_OF expression | OP_REFERENCE_POINTER expression | OP_MUL expression | defined_constants
 	;
 
 // Access modifier.
@@ -309,10 +318,10 @@ variable_assignment
 
 // Variable declaration.
 variable_declaration
-	:	variable_parameter ('=' variable_parameter)* ASSIGN_OP_EQ expression 	#VariableDeclareWithInitializer
-	|	variable_parameter (',' variable_parameter)* ASSIGN_OP_EQ expression	#VariableDeclareWithTupleInitializer
-	|	variable_parameter (',' IDENTIFIER)*									#VariableDeclareWithoutInitializer
-	|	variable_parameter (',' variable_parameter)*							#VariableDeclareWithoutInitializerMultipleTypes
+	:	attribute* variable_parameter ('=' variable_parameter)* ASSIGN_OP_EQ expression 	#VariableDeclareWithInitializer
+	|	attribute* variable_parameter (',' variable_parameter)* ASSIGN_OP_EQ expression		#VariableDeclareWithTupleInitializer
+	|	attribute* variable_parameter (',' IDENTIFIER)*										#VariableDeclareWithoutInitializer
+	|	attribute* variable_parameter (',' variable_parameter)*								#VariableDeclareWithoutInitializerMultipleTypes
 	;
 
 // Label.
@@ -428,6 +437,7 @@ AWAIT:			'await';
 BREAK:			'break';
 CASE:			'case';
 CONST:			'const';
+CONTINUE:		'continue';
 DEFAULT:		'default';
 DO:				'do';
 ELIF:			'else if';
