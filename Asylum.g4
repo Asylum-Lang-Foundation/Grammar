@@ -220,12 +220,12 @@ function_call
 
 // Constructor with initializers.
 constructor_with_initializers
-	:	variable_type ('(' (expression (',' expression)*)? ')')? '{' (initializer_value (',' initializer_value)*)? '}'
+	:	NEW? variable_type ('(' (expression (',' expression)*)? ')')? '{' (initializer_value (',' initializer_value)*)? '}'
 	;
 
 // Initializer value.
 initializer_value
-	:	(IDENTIFIER ('.' IDENTIFIER)* '=')? expression
+	:	(IDENTIFIER ('.' IDENTIFIER)* ':')? expression
 	;
 
 // Return value.
@@ -318,10 +318,12 @@ variable_assignment
 
 // Variable declaration.
 variable_declaration
-	:	attribute* variable_parameter ('=' variable_parameter)* ASSIGN_OP_EQ expression 	#VariableDeclareWithInitializer
-	|	attribute* variable_parameter (',' variable_parameter)* ASSIGN_OP_EQ expression		#VariableDeclareWithTupleInitializer
-	|	attribute* variable_parameter (',' IDENTIFIER)*										#VariableDeclareWithoutInitializer
-	|	attribute* variable_parameter (',' variable_parameter)*								#VariableDeclareWithoutInitializerMultipleTypes
+	:	attribute* variable_parameter ('=' variable_parameter)* ASSIGN_OP_EQ NEW? (constructor_with_initializers | function_call)	#VariableDeclareWithInitializer
+	|	attribute* variable_parameter (',' variable_parameter)* ASSIGN_OP_EQ NEW? (constructor_with_initializers | function_call)	#VariableDeclareWithTupleInitializer
+	|	attribute* variable_parameter ('=' variable_parameter)* ASSIGN_OP_EQ expression 											#VariableDeclareWithInitializerExpr
+	|	attribute* variable_parameter (',' variable_parameter)* ASSIGN_OP_EQ expression												#VariableDeclareWithTupleInitializerExpr
+	|	attribute* variable_parameter (',' IDENTIFIER)*																				#VariableDeclareWithoutInitializer
+	|	attribute* variable_parameter (',' variable_parameter)*																		#VariableDeclareWithoutInitializerMultipleTypes
 	;
 
 // Label.

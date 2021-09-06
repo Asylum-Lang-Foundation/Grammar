@@ -146,4 +146,10 @@ pub fn main() {
 	if foo(134)("qwerty")(3)(0x696969) {}
 	
 	if (sixty == "9")owo();
+
+	Car car = Car {
+        licensePlate: "TOY1234",
+        rgbColor: Color { red: 50, green: 200 },
+        year: 2017
+    };
 }
