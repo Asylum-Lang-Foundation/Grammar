@@ -4,7 +4,6 @@ grammar Asylum;
 	To Do List:
 		* Embedded Functions
 		* Macros?
-		* Fix
 
 	Notes:
 		* Tuple expressions that return void are ignored (comma operator).
@@ -27,6 +26,7 @@ universal_statement
 	|	interface_definition			#UniversalInterface
 	|	implementation_definition		#UniversalImplementation
 	|	typedef_definition				#UniversalTypedef
+	|	code_statement					#UniversalTopLevelCode
 	;
 
 // Using statement.
@@ -417,7 +417,9 @@ operator
 	|	OP_MOD
 	|	OP_MUL
 	|	OP_OR
+	|	OP_NAND
 	|	OP_NE
+	|	OP_NOR
 	|	OP_NOT
 	|	OP_PLUS_PLUS
 	|	OP_RANGE
@@ -428,7 +430,7 @@ operator
 
 // Assignment operator.
 assignment_operator
-	:	ASSIGN_OP_EQ | ASSIGN_OP_ADD_EQ | ASSIGN_OP_SUB_EQ | ASSIGN_OP_EXP_EQ | ASSIGN_OP_MUL_EQ | ASSIGN_OP_DIV_EQ | ASSIGN_OP_MOD_EQ | ASSIGN_OP_AND_EQ | ASSIGN_OP_OR_EQ | ASSIGN_OP_XOR_EQ | ASSIGN_OP_LSHIFT_EQ | ASSIGN_OP_RSHIFT_EQ | ASSIGN_OP_CHECK_NULL
+	:	ASSIGN_OP_EQ | ASSIGN_OP_ADD_EQ | ASSIGN_OP_SUB_EQ | ASSIGN_OP_EXP_EQ | ASSIGN_OP_MUL_EQ | ASSIGN_OP_DIV_EQ | ASSIGN_OP_MOD_EQ | ASSIGN_OP_BITAND_EQ | ASSIGN_OP_BITOR_EQ | ASSIGN_OP_XOR_EQ | ASSIGN_OP_BITFLIP_EQ | ASSIGN_OP_LSHIFT_EQ | ASSIGN_OP_RSHIFT_EQ | ASSIGN_OP_AND_EQ | ASSIGN_OP_OR_EQ | ASSIGN_OP_NAND_EQ | ASSIGN_OP_NOR_EQ | ASSIGN_OP_CHECK_NULL
 	;
 
 // Keywords.
@@ -487,11 +489,16 @@ ASSIGN_OP_EXP_EQ:		'**=';
 ASSIGN_OP_MUL_EQ:		'*=';
 ASSIGN_OP_DIV_EQ:		'/=';
 ASSIGN_OP_MOD_EQ:		'%=';
-ASSIGN_OP_AND_EQ:		'&=';
-ASSIGN_OP_OR_EQ:		'|=';
+ASSIGN_OP_BITAND_EQ:	'&=';
+ASSIGN_OP_BITOR_EQ:		'|=';
 ASSIGN_OP_XOR_EQ:		'^=';
+ASSIGN_OP_BITFLIP_EQ:	'~=';
 ASSIGN_OP_LSHIFT_EQ:	'<<=';
 ASSIGN_OP_RSHIFT_EQ:	'>>=';
+ASSIGN_OP_AND_EQ:		'&&=';
+ASSIGN_OP_OR_EQ:		'||=';
+ASSIGN_OP_NAND_EQ:		'!&=';
+ASSIGN_OP_NOR_EQ:		'!|=';
 ASSIGN_OP_CHECK_NULL:	'??=';
 
 // Operators.
@@ -511,7 +518,9 @@ OP_MEMBER_ACCESS:		'^';
 OP_MINUS_MINUS:			'--';
 OP_MOD:					'%';
 OP_MUL:					'*';
+OP_NAND:				'!&';
 OP_NE:					'!=';
+OP_NOR:					'!|';
 OP_NOT:					'!';
 OP_NULL_CHECK:			'??';
 OP_OR:					'||';
