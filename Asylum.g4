@@ -346,8 +346,8 @@ variable_parameter
 variable_type
 	:	primitives													#VarTypePrimitive
 	|	'(' variable_type (',' variable_type)+ ')'					#VarTypeTupleProper
-	|	UNSAFE variable_type '*'									#VarTypeRawPointer
-	|	variable_type '*'											#VarTypeDietPointer
+	|	variable_type '*'											#VarTypePointer
+	|	variable_type '&'											#VarTypeReference
 	|	variable_type '[' INTEGER? (',' INTEGER?)* ']'				#VarTypeArray
 	|	variable_type '<' variable_type (',' variable_type)* '>'	#VarTypeGenerics
 	|	variable_type (',' variable_type)+							#VarTypeTuple
