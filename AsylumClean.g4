@@ -85,7 +85,7 @@ function_property
 
 // Function definition.
 function_definition
-	:	attribute* access_modifier? function_property* FUNCTION IDENTIFIER generic_definition? '(' variable_arguments ')' (OP_RET variable_type)? (OP_LAMBDA expression | INDENT code_statement* DEDENT)?
+	:	attribute* access_modifier? function_property* FUNCTION IDENTIFIER generic_definition? '(' variable_arguments ')' (OP_RET variable_type)? (OP_LAMBDA expression | INDENT code_statement+ DEDENT)?
 	;
 
 // Construction definition.
@@ -95,7 +95,7 @@ constructor_definition
 
 // Operator overloading.
 operator_definition
-	:	attribute* INLINE? OPERATOR operator '(' variable_arguments ')' (OP_RET variable_type)? ((OP_LAMBDA expression NL | INDENT code_statement* DEDENT) | NL)
+	:	attribute* INLINE? OPERATOR operator '(' variable_arguments ')' (OP_RET variable_type)? ((OP_LAMBDA expression NL | INDENT code_statement+ DEDENT) | NL)
 	;
 
 // Attribute.
@@ -105,14 +105,14 @@ attribute
 
 // Enum declaration.
 enum_definition
-	:	attribute* access_modifier? ENUM IDENTIFIER (':' INTEGER)? (INDENT (enum_entry (',' enum_entry)*) DEDENT | NL)
+	:	attribute* access_modifier? ENUM IDENTIFIER (':' INTEGER)? (INDENT enum_entry+ DEDENT)?
 	;
 
 // Enum entry.
 enum_entry
 	:	IDENTIFIER (ASSIGN_OP_EQ INTEGER)? NL															#EnumEntryPlain
 	|	IDENTIFIER '(' (variable_type (',' variable_type)*)? ')' (ASSIGN_OP_EQ INTEGER)? NL				#EnumEntryData
-	|	IDENTIFIER '{' (variable_parameter (',' variable_parameter)*)? '}' (ASSIGN_OP_EQ INTEGER)? NL	#EnumEntryStructs
+	|	IDENTIFIER (ASSIGN_OP_EQ INTEGER)? INDENT (variable_parameter NL)+ DEDENT						#EnumEntryStructs
 	;
 
 // Union declaration.
@@ -122,12 +122,12 @@ union_definition
 
 // Struct declaration.
 struct_definition
-	:	attribute* access_modifier? STRUCT IDENTIFIER generic_definition? type_implements? (INDENT struct_entry* DEDENT | NL)
+	:	attribute* access_modifier? STRUCT IDENTIFIER generic_definition? type_implements? (INDENT struct_entry+ DEDENT | NL)
 	;
 
 // Interface declaration.
 interface_definition
-	:	attribute* access_modifier? INTERFACE IDENTIFIER generic_definition? type_implements? (INDENT struct_entry* DEDENT | NL)
+	:	attribute* access_modifier? INTERFACE IDENTIFIER generic_definition? type_implements? (INDENT struct_entry+ DEDENT | NL)
 	;
 
 // Implementation declaration.
@@ -155,14 +155,14 @@ typedef_definition
 
 // Struct entry.
 struct_entry
-	:	access_modifier? variable_parameter struct_entry_property? NL 	#StructData
-	|	access_modifier NL												#StructAccess
+	:	access_modifier? variable_parameter (struct_entry_property | NL) 	#StructData
+	|	access_modifier NL													#StructAccess
 	;
 
 // Struct entry properties.
 struct_entry_property
-	:	'{' (access_modifier? GET (';' | '{' code_statement* '}' | OP_LAMBDA expression ';'))? (access_modifier? SET (';' | '{' code_statement* '}' | OP_LAMBDA expression ';'))? '}'	#PropertyGetSet
-	|	OP_LAMBDA expression ';'																																						#PropertySetOnly
+	:	INDENT (access_modifier? GET (NL | code_body | OP_LAMBDA expression NL))? (access_modifier? SET (NL | code_body | OP_LAMBDA expression NL))? DEDENT		#PropertyGetSet
+	|	OP_LAMBDA expression NL																																	#PropertySetOnly
 	;
 
 // Code body.
