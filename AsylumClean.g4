@@ -85,7 +85,7 @@ function_property
 
 // Function definition.
 function_definition
-	:	attribute* access_modifier? function_property* FUNCTION IDENTIFIER generic_definition? '(' variable_arguments ')' (OP_RET variable_type)? (OP_LAMBDA expression | INDENT code_statement+ DEDENT)?
+	:	attribute* access_modifier? function_property* FUNCTION IDENTIFIER generic_definition? '(' variable_arguments ')' (OP_RET variable_type)? (OP_LAMBDA expression | INDENT code_statement+ DEDENT | NL)?
 	;
 
 // Construction definition.
@@ -117,7 +117,7 @@ enum_entry
 
 // Union declaration.
 union_definition
-	:	attribute* UNSAFE access_modifier? UNION IDENTIFIER INDENT (variable_parameter NL)+ DEDENT
+	:	attribute* UNSAFE access_modifier? UNION IDENTIFIER INDENT (variable_parameter NL+)+ DEDENT
 	;
 
 // Struct declaration.
@@ -141,6 +141,7 @@ implementation_entry
 	|	constructor_definition		#ImplementationEntryConstructor
 	|	operator_definition			#ImplementationEntryOperator
 	|	cast_definition				#ImplementationEntryCast
+	|	NL							#ImplementationBlank
 	;
 
 // Cast definition.
@@ -157,6 +158,7 @@ typedef_definition
 struct_entry
 	:	access_modifier? variable_parameter (struct_entry_property | NL) 	#StructData
 	|	access_modifier NL													#StructAccess
+	|	NL																	#StructBlank
 	;
 
 // Struct entry properties.
@@ -183,8 +185,9 @@ code_statement
 	|	if_statement												#IfStatement
 	|	switch_case													#SwitchCaseStatement
 	|	expression NL												#ExpressionStatement
-	|	UNSAFE? INDENT code_statement* DEDENT 						#IndentedStatement
+	|	UNSAFE INDENT code_statement* DEDENT 						#IndentedStatement
 	|	return_value NL												#ReturnStatement
+	|	NL															#BlankStatement
 	;
 
 // Infinite loop.
@@ -233,8 +236,8 @@ switch_case
 
 // Switch rule.
 switch_rule
-	:	(CASE expression ':')+ code_statement* BREAK NL 	#CaseExpression
-	|	DEFAULT ':' code_statement* BREAK NL				#CaseDefault
+	:	(CASE expression ':' NL*)+ INDENT code_statement+ BREAK DEDENT NL 	#CaseExpression
+	|	DEFAULT ':' INDENT code_statement+ BREAK DEDENT NL					#CaseDefault
 	;
 
 // Function call. Can also be a constructor.
@@ -308,7 +311,7 @@ expression
 	|	expression OP_LAMBDA expression										#ExprLambda
 	|	<assoc=right> expression assignment_operator expression				#ExprAssignment
 	|	expression ',' expression											#ExprComma
-	|	UNSAFE? '{' code_statement* '}'										#ExprCode
+	|	UNSAFE? INDENT code_statement+ DEDENT								#ExprCode
 	|	INTEGER																#ExprInteger
 	|	STRING																#ExprString
 	;
@@ -356,8 +359,8 @@ label
 
 // Variable arguments.
 variable_arguments
-	:	(label? variable_parameter (',' label? variable_parameter)* (',' variable_type? '...' IDENTIFIER)?)? 	#VariableArgsNoneOrSome
-	|  variable_type? '...' IDENTIFIER 														 					#VariableArgsVariadicOnly
+	:	(label? variable_parameter (',' label? variable_parameter)* (',' '...' IDENTIFIER (':' variable_type)?)?)? 	#VariableArgsNoneOrSome
+	|  '...' IDENTIFIER (':' variable_type)? 														 				#VariableArgsVariadicOnly
 	;
 
 // Variable parameter.
