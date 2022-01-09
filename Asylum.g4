@@ -261,47 +261,6 @@ generic_definition
 generic_specifier
 	:	'<' variable_type (',' variable_type)* '>'
 	;
-/*
-
-// Expression.
-expression
-	:	'(' expression ')'													#ExprParenthesis
-	|	primary_expression													#ExprPrimary
-	|	expression '(' expression ')'										#ExprCallReturnedFunction
-	|	expression (OP_PLUS_PLUS | OP_MINUS_MINUS | OP_NOT)					#ExprSubprimary
-	|	<assoc=right> unary_expression										#ExprUnary // Something is weird here with the order of operations.
-	|	expression OP_RANGE '='? expression									#ExprRange
-	|	expression (OP_MUL | OP_DIV | OP_MOD) expression					#ExprMultiplicative
-	|	expression (OP_ADD | OP_SUB) expression								#ExprAdditive
-	|	expression (OP_LSHIFT | OP_RSHIFT) expression						#ExprShift
-	|	expression (OP_LT | OP_GT | OP_LE | OP_GE | IS | AS) expression		#ExprComparison
-	|	expression (OP_EQ | OP_NE) expression								#ExprEqualityComparison
-	|	expression OP_ADDRESS_OF expression									#ExprBitAnd
-	|	expression OP_MEMBER_ACCESS expression								#ExprXor
-	|	expression OP_BITWISE_OR expression									#ExprBitOr
-	|	expression OP_AND expression										#ExprAnd
-	|	expression OP_OR expression											#ExprOr
-	|	expression OP_NULL_CHECK expression									#ExprNullCheck
-	|	<assoc=right> expression '?' expression ':' expression				#ExprTernary
-	|	expression OP_LAMBDA expression										#ExprLambda
-	|	<assoc=right> expression assignment_operator expression				#ExprAssignment
-	|	expression ',' expression											#ExprComma
-	|	UNSAFE? '{' code_statement* '}'										#ExprCode
-	|	INTEGER																#ExprInteger
-	|	STRING																#ExprString
-	;
-
-// Primary expression.
-primary_expression
-	:	variable_or_function | constructor_with_initializers | function_call | NEW function_call | TYPEOF '(' (variable_or_function | variable_type) ')' | SIZEOF '(' (variable_or_function | variable_type) ')'
-	;
-
-// Unary expression.
-unary_expression
-	: OP_ADD expression | OP_SUB expression | OP_NOT expression | OP_TILDE expression | OP_PLUS_PLUS expression | OP_MINUS_MINUS expression | OP_MEMBER_ACCESS expression | '(' variable_type ')' expression | OP_ADDRESS_OF expression | OP_REFERENCE_POINTER expression | OP_MUL expression | defined_constants
-	;
-
-*/
 
 // Expression. From lowest to highest precedence.
 expression
@@ -416,34 +375,40 @@ expr_range
 	|	expr_range (OP_RANGE | OP_RANGE_EQ) expr_unary	#ExprRange
 	;
 
-// Unary expression. <assoc=right>
+// Unary expression.
 expr_unary
-	:	expr_primary
+	:	expr_primary									#ExprVisitPrimary
+	|	<assoc=right> OP_ADD expr_unary					#ExprPos
+	|	<assoc=right> OP_SUB expr_unary					#ExprNeg
+	|	<assoc=right> OP_NOT expr_unary					#ExprNot
+	|	<assoc=right> OP_TILDE expr_unary				#ExprBitNot
+	|	<assoc=right> OP_PLUS_PLUS expr_unary			#ExprPreIncrement
+	|	<assoc=right> OP_MINUS_MINUS expr_unary			#ExprPreDecrement
+	|	<assoc=right> OP_MEMBER_ACCESS expr_unary		#ExprMemberAccessUnary
+	|	<assoc=right> '(' expression ')' expression		#ExprCast
+	|	<assoc=right> AWAIT expression					#ExprAwait
+	|	<assoc=right> OP_ADDRESS_OF expr_unary			#ExprAddressOf
+	|	<assoc=right> OP_REFERENCE_POINTER expr_unary	#ExprAsReference
+	|	<assoc=right> OP_MUL expr_unary					#ExprDereference
+	|	defined_constants								#ExprDefinedConstant
 	;
 
 // Primary expression.
 expr_primary
 	:	expr_parenthesis											#ExprVisitParenthesis
 	|	expr_primary '.' expr_parenthesis							#ExprMemberAccess
-	|	expr_primary generic_specifier? '(' expression ')'			#ExprFunctionCall
+	|	expr_primary generic_specifier? '(' expression? ')'			#ExprFunctionCall
 	|	expr_primary '[' expression ']'								#ExprArrayAccess
 	|	expr_primary OP_PLUS_PLUS									#ExprIncrement
+	|	expr_primary OP_MINUS_MINUS									#ExprDecrement
+	|	NEW expression												#ExprNew
+	|	TYPEOF '(' expression ')'									#ExprTypeof
+	|	DEFAULT '(' expression ')'									#ExprDefaultOf
+	|	DEFAULT														#ExprDefault
+	|	NAMEOF '(' expression ')'									#ExprNameof
+	|	SIZEOF '(' expression ')'									#ExprSizeof
+	|	STACKALLOC expression										#ExprStackAlloc
 	;
-
-/*
-// Primary expression.
-primary_expression
-	:	variable_or_function | constructor_with_initializers | function_call | NEW function_call |
-	TYPEOF '(' (variable_or_function | variable_type) ')' | SIZEOF '(' (variable_or_function | variable_type) ')'
-	;
-
-// Unary expression.
-unary_expression
-	: OP_ADD expression | OP_SUB expression | OP_NOT expression | OP_TILDE expression | OP_PLUS_PLUS expression
-	| OP_MINUS_MINUS expression | OP_MEMBER_ACCESS expression | '(' variable_type ')' expression | OP_ADDRESS_OF expression
-	| OP_REFERENCE_POINTER expression | OP_MUL expression | defined_constants
-	;
-*/
 
 // Parenthesis.
 expr_parenthesis
@@ -620,6 +585,7 @@ INTERFACE:		'interface';
 INTERNAL:		'internal';
 IS:				'is';
 LOOP:			'loop';
+NAMEOF:			'nameof';
 NAMESPACE:		'namespace';
 NEW:			'new';
 OPERATOR:		'operator';
@@ -629,6 +595,7 @@ PUBLIC:			'public' | 'pub';
 RETURN:			'return';
 SET:			'set';
 SIZEOF:			'sizeof';
+STACKALLOC:		'stackalloc';
 STATIC:			'static';
 STRUCT:			'struct';
 SWITCH:			'switch';
