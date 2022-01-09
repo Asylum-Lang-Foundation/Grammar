@@ -1,4 +1,4 @@
-java -jar /usr/local/lib/antlr-4.9.2-complete.jar Asylum.g4 -o bin
+java -jar /usr/local/lib/antlr-4.9.3-complete.jar Asylum.g4 -o bin
 javac bin/*.java
 echo Running:
 cd bin

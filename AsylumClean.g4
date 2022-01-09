@@ -1,4 +1,4 @@
-grammar Asylum;
+grammar AsylumClean;
 
 /*
 	To Do List:
@@ -9,10 +9,35 @@ grammar Asylum;
 		* Tuple expressions that return void are ignored (comma operator).
  */
 
+// Indent stuff.
+tokens { INDENT, DEDENT }
+
+@lexer::header {
+  import com.yuvalshavit.antlr4.DenterHelper;
+}
+
+@lexer::members {
+  private final DenterHelper denter = new DenterHelper(NL,
+                                                       AsylumCleanParser.INDENT,
+                                                       AsylumCleanParser.DEDENT)
+  {
+    @Override
+    public Token pullToken() {
+      return AsylumCleanLexer.super.nextToken();
+    }
+  };
+
+  @Override
+  public Token nextToken() {
+    return denter.nextToken();
+  }
+}
+
 // Entry point.
 init
 	:	universal_statement*
 	;
+
 
 // Universal statement.
 universal_statement
@@ -31,12 +56,12 @@ universal_statement
 
 // Using statement.
 using_statement
-	:	USING STATIC? IDENTIFIER ('.' IDENTIFIER)* ('.*')? ';'
+	:	USING STATIC? IDENTIFIER ('.' IDENTIFIER)* ('.*')? NL
 	;
 
 // Namespace statement.
 namespace_statement
-	:	NAMESPACE IDENTIFIER ('.' IDENTIFIER)* ';'
+	:	NAMESPACE IDENTIFIER ('.' IDENTIFIER)* NL
 	;
 
 // Extern function property.
@@ -47,7 +72,7 @@ extern_function_property
 
 // Extern function definition.
 extern_function_definition
-	:	attribute* EXTERN access_modifier? extern_function_property* FUNCTION IDENTIFIER '(' variable_arguments ')' (OP_RET variable_type)? ';'
+	:	attribute* EXTERN access_modifier? extern_function_property* FUNCTION IDENTIFIER '(' variable_arguments ')' (OP_RET variable_type)? NL
 	;
 
 // Function property.
@@ -60,54 +85,54 @@ function_property
 
 // Function definition.
 function_definition
-	:	attribute* access_modifier? function_property* FUNCTION IDENTIFIER generic_definition? '(' variable_arguments ')' (OP_RET variable_type)? ((OP_LAMBDA expression ';' | '{' code_statement* '}') | ';')
+	:	attribute* access_modifier? function_property* FUNCTION IDENTIFIER generic_definition? '(' variable_arguments ')' (OP_RET variable_type)? (OP_LAMBDA expression | INDENT code_statement+ DEDENT | NL)?
 	;
 
 // Construction definition.
 constructor_definition
-	:	attribute* access_modifier? function_property* variable_type generic_definition? '(' variable_arguments ')' ((OP_LAMBDA expression ';' | '{' code_statement* '}') | ';')
+	:	attribute* access_modifier? function_property* variable_type generic_definition? '(' variable_arguments ')' ((OP_LAMBDA expression NL | INDENT code_statement+ DEDENT) | NL)
 	;
 
 // Operator overloading.
 operator_definition
-	:	attribute* INLINE? OPERATOR operator '(' variable_arguments ')' (OP_RET variable_type)? ((OP_LAMBDA expression ';' | '{' code_statement* '}') | ';')
+	:	attribute* INLINE? OPERATOR operator '(' variable_arguments ')' (OP_RET variable_type)? ((OP_LAMBDA expression NL | INDENT code_statement+ DEDENT) | NL)
 	;
 
 // Attribute.
 attribute
-	: '[' IDENTIFIER ('(' expression (',' expression)* ')')? ']'
+	: '[' IDENTIFIER ('(' expression (',' expression)* ')')? ']' NL
 	;
 
 // Enum declaration.
 enum_definition
-	:	attribute* access_modifier? ENUM IDENTIFIER (':' INTEGER)? '{' (enum_entry (',' enum_entry)*)? '}'
+	:	attribute* access_modifier? ENUM IDENTIFIER (':' INTEGER)? (INDENT enum_entry+ DEDENT)?
 	;
 
 // Enum entry.
 enum_entry
-	:	IDENTIFIER (ASSIGN_OP_EQ INTEGER)?															#EnumEntryPlain
-	|	IDENTIFIER '(' (variable_type (',' variable_type)*)? ')' (ASSIGN_OP_EQ INTEGER)?			#EnumEntryData
-	|	IDENTIFIER '{' (variable_parameter (',' variable_parameter)*)? '}' (ASSIGN_OP_EQ INTEGER)?	#EnumEntryStructs
+	:	IDENTIFIER (ASSIGN_OP_EQ INTEGER)? NL															#EnumEntryPlain
+	|	IDENTIFIER '(' (variable_type (',' variable_type)*)? ')' (ASSIGN_OP_EQ INTEGER)? NL				#EnumEntryData
+	|	IDENTIFIER (ASSIGN_OP_EQ INTEGER)? INDENT (variable_parameter NL)+ DEDENT						#EnumEntryStructs
 	;
 
 // Union declaration.
 union_definition
-	:	attribute* UNSAFE access_modifier? UNION IDENTIFIER '{' (variable_parameter ';')+ '}'
+	:	attribute* UNSAFE access_modifier? UNION IDENTIFIER INDENT (variable_parameter NL+)+ DEDENT
 	;
 
 // Struct declaration.
 struct_definition
-	:	attribute* access_modifier? STRUCT IDENTIFIER generic_definition? type_implements? ('{' struct_entry* '}' | ';')
+	:	attribute* access_modifier? STRUCT IDENTIFIER generic_definition? type_implements? (INDENT struct_entry+ DEDENT | NL)
 	;
 
 // Interface declaration.
 interface_definition
-	:	attribute* access_modifier? INTERFACE IDENTIFIER generic_definition? type_implements? ('{' struct_entry* '}' | ';')
+	:	attribute* access_modifier? INTERFACE IDENTIFIER generic_definition? type_implements? (INDENT struct_entry+ DEDENT | NL)
 	;
 
 // Implementation declaration.
 implementation_definition
-	:	IMPL variable_type (FOR variable_type)? generic_definition? '{' implementation_entry* '}'
+	:	IMPL variable_or_function (FOR variable_type)? generic_definition? (INDENT implementation_entry+ DEDENT | NL)
 	;
 
 // Implementation entry.
@@ -116,51 +141,53 @@ implementation_entry
 	|	constructor_definition		#ImplementationEntryConstructor
 	|	operator_definition			#ImplementationEntryOperator
 	|	cast_definition				#ImplementationEntryCast
+	|	NL							#ImplementationBlank
 	;
 
 // Cast definition.
 cast_definition
-	:	attribute* INLINE? (IMPLICITCAST | EXPLICITCAST) '(' variable_parameter ')' OP_RET variable_type ('{' code_statement* '}' | OP_LAMBDA expression ';')
+	:	attribute* INLINE? (IMPLICITCAST | EXPLICITCAST) '(' variable_parameter ')' OP_RET variable_type (INDENT code_statement+ DEDENT | OP_LAMBDA expression NL)
 	;
 
 // Typedef definition.
 typedef_definition
-	:	TYPEDEF variable_type IDENTIFIER ';'
+	:	TYPEDEF variable_type IDENTIFIER NL
 	;
 
 // Struct entry.
 struct_entry
-	:	access_modifier? variable_parameter (';' | struct_entry_property)	#StructData
-	|	access_modifier ':'													#StructAccess
+	:	access_modifier? variable_parameter (struct_entry_property | NL) 	#StructData
+	|	access_modifier NL													#StructAccess
+	|	NL																	#StructBlank
 	;
 
 // Struct entry properties.
 struct_entry_property
-	:	'{' (access_modifier? GET (';' | '{' code_statement* '}' | OP_LAMBDA expression ';'))? (access_modifier? SET (';' | '{' code_statement* '}' | OP_LAMBDA expression ';'))? '}'	#PropertyGetSet
-	|	OP_LAMBDA expression ';'																																						#PropertySetOnly
+	:	INDENT (access_modifier? GET (NL | code_body | OP_LAMBDA expression NL))? (access_modifier? SET (NL | code_body | OP_LAMBDA expression NL))? DEDENT		#PropertyGetSet
+	|	OP_LAMBDA expression NL																																	#PropertySetOnly
 	;
 
 // Code body.
 code_body
-	:	'{' code_statement* '}'
-	|	code_statement
+	:	INDENT code_statement+ DEDENT
 	;
 
 // Code statement.
 code_statement
-//	:	';'									#BlankStatement - Ok, so this causes an issue as it turns things we want to be individual code statements into part of an expression.
-	:	variable_declaration ';'			#VariableDeclarationStatement
-	|	loop								#LoopStatement
-	|	while_loop							#WhileLoopStatement
-	|	do_while_loop						#DoWhileLoopStatement
-	|	for_loop							#ForLoopStatement
-	|	break_statement 					#BreakStatement
-	|	continue_statement					#ContinueStatement
-	|	if_statement						#IfStatement
-	|	switch_case							#SwitchCaseStatement
-	|	expression ';'						#ExpressionStatement
-	|	UNSAFE? '{' code_statement* '}' 	#IndentedStatement
-	|	return_value 						#ReturnStatement
+//	:	(';' | NL)													#BlankStatement		Causes problems currently.
+	:	variable_declaration NL										#VariableDeclarationStatement
+	|	loop														#LoopStatement
+	|	while_loop													#WhileLoopStatement
+	|	do_while_loop												#DoWhileLoopStatement
+	|	for_loop													#ForLoopStatement
+	|	break_statement												#BreakStatement
+	|	continue_statement											#ContinueStatement
+	|	if_statement												#IfStatement
+	|	switch_case													#SwitchCaseStatement
+	|	expression NL												#ExpressionStatement
+	|	UNSAFE INDENT code_statement* DEDENT 						#IndentedStatement
+	|	return_value NL												#ReturnStatement
+	|	NL															#BlankStatement
 	;
 
 // Infinite loop.
@@ -175,7 +202,7 @@ while_loop
 
 // Do while loop.
 do_while_loop
-	:	DO code_body WHILE expression ';'
+	:	DO code_body WHILE expression NL
 	;
 
 // For loop.
@@ -188,12 +215,12 @@ for_loop
 
 //Break.
 break_statement
-	:	BREAK INTEGER? ';'
+	:	BREAK INTEGER? NL
 	;
 
 // Continue.
 continue_statement
-	:	CONTINUE ';'
+	:	CONTINUE NL
 	;
 
 // If statement.
@@ -203,14 +230,14 @@ if_statement
 
 // Switch case.
 switch_case
-	:	SWITCH '(' variable_or_function (OP_LAMBDA IDENTIFIER)? ')' '{' switch_rule+ '}'	#SwitchCase
-	|	SWITCH  variable_or_function (OP_LAMBDA IDENTIFIER)? '{' switch_rule+ '}'			#SwitchCaseNoParens
+	:	SWITCH '(' variable_or_function (OP_LAMBDA IDENTIFIER)? ')' INDENT switch_rule+ DEDENT	#SwitchCase
+	|	SWITCH  variable_or_function (OP_LAMBDA IDENTIFIER)? INDENT switch_rule+ DEDENT			#SwitchCaseNoParens
 	;
 
 // Switch rule.
 switch_rule
-	:	(CASE expression ':')+ code_statement* BREAK ';' 	#CaseExpression
-	|	DEFAULT ':' code_statement* BREAK ';'				#CaseDefault
+	:	(CASE expression ':' NL*)+ INDENT code_statement+ BREAK DEDENT NL 	#CaseExpression
+	|	DEFAULT ':' INDENT code_statement+ BREAK DEDENT NL					#CaseDefault
 	;
 
 // Function call. Can also be a constructor.
@@ -230,8 +257,7 @@ initializer_value
 
 // Return value.
 return_value
-	:	expression
-	|	RETURN expression ';'
+	:	RETURN expression
 	;
 
 // Type implements extended.
@@ -262,165 +288,42 @@ generic_specifier
 	:	'<' variable_type (',' variable_type)* '>'
 	;
 
-// Expression. From lowest to highest precedence.
+// Expression.
 expression
-	:	expr_comma	#ExprVisitComma
-	;
-
-// Comma expression.
-expr_comma
-	:	expr_assignment 				#ExprVisitAssignment
-	|	expr_comma ',' expr_assignment	#ExprComma
-	;
-
-// Assignment expression.
-expr_assignment
-	:	expr_lambda														#ExprVisitLambda
-	|	<assoc=right> expr_lambda assignment_operator expr_assignment	#ExprAssignment
-	;
-
-// Lamba expression.
-expr_lambda
-	:	expr_ternary						#ExprVisitTernary
-	|	expr_lambda OP_LAMBDA expr_ternary	#ExprLambda
-	;
-
-// Ternary expression.
-expr_ternary
-	:	expr_nullcheck													#ExprVisitNullCheck
-	|	<assoc=right> expr_nullcheck '?' expr_ternary ':' expr_ternary	#ExprTernary
-	;
-
-// Null check expression.
-expr_nullcheck
-	:	expr_or									#ExprVisitOr
-	|	expr_nullcheck OP_NULL_CHECK expr_or	#ExprNullCheck
-	;
-
-// Or expression.
-expr_or
-	:	expr_and				#ExprVisitAnd
-	|	expr_or OP_OR expr_and	#ExprOr
-	;
-
-// And expression.
-expr_and
-	:	expr_bit_or					#ExprVisitBitOr
-	|	expr_and OP_AND expr_bit_or	#ExprAnd
-	;
-
-// Bitwise or expression.
-expr_bit_or
-	:	expr_bit_xor							#ExprVisitBitXor
-	|	expr_bit_or OP_BITWISE_OR expr_bit_xor	#ExprBitOr
-	;
-
-// Bitwise xor expression.
-expr_bit_xor
-	:	expr_bit_and									#ExprVisitBitAnd
-	|	expr_bit_xor OP_MEMBER_ACCESS expr_bit_and		#ExprBitXor
-	;
-
-// Bitwise and expression.
-expr_bit_and
-	:	expr_equality_comparison								#ExprVisitEqualityComparison
-	|	expr_bit_and OP_ADDRESS_OF expr_equality_comparison		#ExprBitAnd
-	;
-
-// Equality comparison.
-expr_equality_comparison
-	:	expr_comparison												#ExprVisitComparison
-	|	expr_equality_comparison (OP_EQ | OP_NE) expr_comparison	#ExprEqualityComparison
-	;
-
-// Comparison expression.
-expr_comparison
-	:	expr_three_way_comparison															#ExprVisitThreeWayComparison
-	|	expr_comparison (OP_LT | OP_GT | OP_LE | OP_GE | IS | AS) expr_three_way_comparison	#ExprComparison
-	;
-
-// Three-way comparison expression.
-expr_three_way_comparison
-	:	expr_shift										#ExprVisitShift
-	|	expr_three_way_comparison (OP_CMP) expr_shift	#ExprThreeWayComparison
-	;
-
-// Shift expression.
-expr_shift
-	:	expr_additive										#ExprVisitAdditive
-	|	expr_shift (OP_LSHIFT | OP_RSHIFT) expr_additive	#ExprShift
-	;
-
-// Additive expression.
-expr_additive
-	:	expr_multiplicative									#ExprVisitMultiplicative
-	|	expr_additive (OP_ADD | OP_SUB) expr_multiplicative	#ExprAdditive
-	;
-
-// Multiplicative expression.
-expr_multiplicative
-	:	expr_exponential												#ExprVisitExponential
-	|	expr_multiplicative (OP_MUL | OP_DIV | OP_MOD) expr_exponential	#ExprMultiplicative
-	;
-
-// Exponential expression.
-expr_exponential
-	:	expr_range							#ExprVisitRange
-	|	expr_exponential OP_EXP expr_range	#ExprExponential
-	;
-
-// Range expression.
-expr_range
-	:	expr_unary										#ExprVisitUnary
-	|	expr_range (OP_RANGE | OP_RANGE_EQ) expr_unary	#ExprRange
-	;
-
-// Unary expression.
-expr_unary
-	:	expr_primary														#ExprVisitPrimary
-	|	<assoc=right> OP_ADD expr_unary										#ExprPos
-	|	<assoc=right> OP_SUB expr_unary										#ExprNeg
-	|	<assoc=right> OP_NOT expr_unary										#ExprNot
-	|	<assoc=right> OP_TILDE expr_unary									#ExprBitNot
-	|	<assoc=right> OP_PLUS_PLUS expr_unary								#ExprPreIncrement
-	|	<assoc=right> OP_MINUS_MINUS expr_unary								#ExprPreDecrement
-	|	<assoc=right> OP_MEMBER_ACCESS expr_unary							#ExprMemberAccessUnary
-	|	<assoc=right> '(' (expression | variable_type) ')' expression		#ExprCast
-	|	<assoc=right> AWAIT expression										#ExprAwait
-	|	<assoc=right> OP_ADDRESS_OF expr_unary								#ExprAddressOf
-	|	<assoc=right> OP_REFERENCE_POINTER expr_unary						#ExprAsReference
-	|	<assoc=right> OP_MUL expr_unary										#ExprDereference
-	|	defined_constants													#ExprDefinedConstant
+	:	'(' expression ')'													#ExprParenthesis
+	|	primary_expression													#ExprPrimary
+	|	expression '(' expression ')'										#ExprCallReturnedFunction
+	|	expression (OP_PLUS_PLUS | OP_MINUS_MINUS | OP_NOT)					#ExprSubprimary
+	|	<assoc=right> unary_expression										#ExprUnary // Something is weird here with the order of operations.
+	|	expression OP_RANGE '='? expression									#ExprRange
+	|	expression (OP_MUL | OP_DIV | OP_MOD) expression					#ExprMultiplicative
+	|	expression (OP_ADD | OP_SUB) expression								#ExprAdditive
+	|	expression (OP_LSHIFT | OP_RSHIFT) expression						#ExprShift
+	|	expression (OP_LT | OP_GT | OP_LE | OP_GE | IS | AS) expression		#ExprComparison
+	|	expression (OP_EQ | OP_NE) expression								#ExprEqualityComparison
+	|	expression OP_ADDRESS_OF expression									#ExprBitAnd
+	|	expression OP_MEMBER_ACCESS expression								#ExprXor
+	|	expression OP_BITWISE_OR expression									#ExprBitOr
+	|	expression OP_AND expression										#ExprAnd
+	|	expression OP_OR expression											#ExprOr
+	|	expression OP_NULL_CHECK expression									#ExprNullCheck
+	|	<assoc=right> expression '?' expression ':' expression				#ExprTernary
+	|	expression OP_LAMBDA expression										#ExprLambda
+	|	<assoc=right> expression assignment_operator expression				#ExprAssignment
+	|	expression ',' expression											#ExprComma
+	|	UNSAFE? INDENT code_statement+ DEDENT								#ExprCode
+	|	INTEGER																#ExprInteger
+	|	STRING																#ExprString
 	;
 
 // Primary expression.
-expr_primary
-	:	expr_parenthesis											#ExprVisitParenthesis
-	|	expr_primary '.' expr_parenthesis							#ExprMemberAccess
-	|	expr_primary generic_specifier? '(' expression? ')'			#ExprFunctionCall
-	|	expr_primary '[' expression ']'								#ExprArrayAccess
-	|	expr_primary OP_PLUS_PLUS									#ExprIncrement
-	|	expr_primary OP_MINUS_MINUS									#ExprDecrement
-	|	NEW expression												#ExprNew
-	|	TYPEOF '(' (expression | variable_type) ')'					#ExprTypeof
-	|	DEFAULT '(' (expression | variable_type) ')'				#ExprDefaultOf
-	|	DEFAULT														#ExprDefault
-	|	NAMEOF '(' expression ')'									#ExprNameof
-	|	SIZEOF '(' (expression | variable_type) ')'					#ExprSizeof
-	|	STACKALLOC expression										#ExprStackAlloc
+primary_expression
+	:	variable_or_function | constructor_with_initializers | function_call | NEW function_call | TYPEOF '(' (variable_or_function | variable_type) ')' | SIZEOF '(' (variable_or_function | variable_type) ')'
 	;
 
-// Parenthesis.
-expr_parenthesis
-	:	expr_end					#ExprVisitEnd
-	|	'(' expression ')'			#ExprParenthesis
-	;
-
-// Item expression.
-expr_end
-	:	IDENTIFIER	#ExprVariable
-	|	INTEGER		#ExprInteger
-	|	STRING		#ExprString
+// Unary expression.
+unary_expression
+	: OP_ADD expression | OP_SUB expression | OP_NOT expression | OP_TILDE expression | OP_PLUS_PLUS expression | OP_MINUS_MINUS expression | OP_MEMBER_ACCESS expression | '(' variable_type ')' expression | OP_ADDRESS_OF expression | OP_REFERENCE_POINTER expression | OP_MUL expression | defined_constants
 	;
 
 // Access modifier.
@@ -441,10 +344,12 @@ variable_assignment
 
 // Variable declaration.
 variable_declaration
-	:	attribute* variable_parameter ('=' variable_parameter)* ASSIGN_OP_EQ expression 	#VariableDeclareWithInitializerExpr
-	|	attribute* variable_parameter (',' variable_parameter)* ASSIGN_OP_EQ expression		#VariableDeclareWithTupleInitializerExpr
-	|	attribute* variable_parameter (',' IDENTIFIER)*										#VariableDeclareWithoutInitializer
-	|	attribute* variable_parameter (',' variable_parameter)*								#VariableDeclareWithoutInitializerMultipleTypes
+	:	attribute* variable_parameter ('=' variable_parameter)* ASSIGN_OP_EQ NEW? (constructor_with_initializers | function_call)	#VariableDeclareWithInitializer
+	|	attribute* variable_parameter (',' variable_parameter)* ASSIGN_OP_EQ NEW? (constructor_with_initializers | function_call)	#VariableDeclareWithTupleInitializer
+	|	attribute* variable_parameter ('=' variable_parameter)* ASSIGN_OP_EQ expression 											#VariableDeclareWithInitializerExpr
+	|	attribute* variable_parameter (',' variable_parameter)* ASSIGN_OP_EQ expression												#VariableDeclareWithTupleInitializerExpr
+	|	attribute* variable_parameter (',' IDENTIFIER)*																				#VariableDeclareWithoutInitializer
+	|	attribute* variable_parameter (',' variable_parameter)*																		#VariableDeclareWithoutInitializerMultipleTypes
 	;
 
 // Label.
@@ -454,13 +359,13 @@ label
 
 // Variable arguments.
 variable_arguments
-	:	(label? variable_parameter (',' label? variable_parameter)* (',' variable_type? '...' IDENTIFIER)?)? 	#VariableArgsNoneOrSome
-	|  variable_type? '...' IDENTIFIER 														 					#VariableArgsVariadicOnly
+	:	(label? variable_parameter (',' label? variable_parameter)* (',' '...' IDENTIFIER (':' variable_type)?)?)? 	#VariableArgsNoneOrSome
+	|  '...' IDENTIFIER (':' variable_type)? 														 				#VariableArgsVariadicOnly
 	;
 
 // Variable parameter.
 variable_parameter
-	:	variable_type IDENTIFIER
+	:	IDENTIFIER ':' variable_type
 	;
 
 // Variable type.
@@ -476,7 +381,6 @@ variable_type
 	|	STATIC variable_type 										#VarTypeStatic
 	|	VOLATILE variable_type										#VarTypeVolatile
 	|	ATOMIC '<' variable_type '>'								#VarTypeAtomic
-	|	READONLY variable_type										#VarTypeReadOnly
 	|	variable_or_function										#VarTypeCustom
 	|	'This'														#VarTypeThis
 	;
@@ -527,10 +431,8 @@ operator
 	|	OP_AND
 	|	OP_ADDRESS_OF
 	|	OP_BITWISE_OR
-	|	OP_CMP
 	|	OP_DIV
 	|	OP_EQ
-	|	OP_EXP
 	|	OP_GE
 	|	OP_GT
 	|	OP_LE
@@ -547,7 +449,6 @@ operator
 	|	OP_NOT
 	|	OP_PLUS_PLUS
 	|	OP_RANGE
-	|	OP_RANGE_EQ
 	|	OP_RSHIFT
 	|	OP_SUB
 	|	OP_TILDE
@@ -586,18 +487,15 @@ INTERFACE:		'interface';
 INTERNAL:		'internal';
 IS:				'is';
 LOOP:			'loop';
-NAMEOF:			'nameof';
 NAMESPACE:		'namespace';
 NEW:			'new';
 OPERATOR:		'operator';
 PRIVATE:		'private' | 'pri';
 PROTECTED:		'protected' | 'pro';
 PUBLIC:			'public' | 'pub';
-READONLY:		'readonly';
 RETURN:			'return';
 SET:			'set';
 SIZEOF:			'sizeof';
-STACKALLOC:		'stackalloc';
 STATIC:			'static';
 STRUCT:			'struct';
 SWITCH:			'switch';
@@ -634,10 +532,8 @@ OP_ADD:					'+';
 OP_ADDRESS_OF:			'&';
 OP_AND:					'&&';
 OP_BITWISE_OR:			'|';
-OP_CMP:					'<=>';
 OP_DIV:					'/';
 OP_EQ:					'==';
-OP_EXP:					'**';
 OP_GE:					'>=';
 OP_GT:					'>';
 OP_LAMBDA:				'=>';
@@ -656,7 +552,6 @@ OP_NULL_CHECK:			'??';
 OP_OR:					'||';
 OP_PLUS_PLUS:			'++';
 OP_RANGE:				'..';
-OP_RANGE_EQ:			'..=';
 OP_REFERENCE_POINTER:	'@';
 OP_RET:					'->';
 OP_RSHIFT:				'>>';
@@ -692,7 +587,8 @@ ESCAPE_SEQUENCE: SimpleEscapeSequence | HexEscapeSequence;
 STRING: '"' ((SimpleEscapeSequence | HexEscapeSequence)|.)*? '"';
 LINE_COMMENT : '//' .*? '\r'? '\n' -> skip;
 COMMENT : '/*' .*? '*/' -> skip;
-WHITESPACES: (Whitespace | NewLine)+ -> skip;
+NL: ('\r'? '\n' ' '*);
+WHITESPACE: Whitespace -> skip;
 
 // Fragments
 fragment InputCharacter:       ~[\r\n\u0085\u2028\u2029];

@@ -12,3 +12,6 @@ Currently supported platforms for testing/compiling the grammar are Windows and 
 
 ## Use
 If you wish to work on the grammar, I highly recommend using Visual Studio Code with the ANTL4 extension. There are two scripts that are utilized: run and compile. Run will produce output in a `bin` folder, and compile will produce output in `compile`. You use the run script to run ANTLR4's tree visualization on an input file, relative to the `bin` folder (so running it in the repo's root directory will look like `run.sh ../Test.asy`). Compiling will produce files in `build` that are directly copied and pasted to the StraitJacket compiler's Grammar folder. A copy of `Asylum.g4` is also copied too as it takes longer to implement compiler features compared to grammar features, so the grammar in the compiler may be lagging behind.
+
+## Asylum Clean Instructions
+Use is pretty similar to the regular language, with a few differences. The first thing is that all the scripts have `clean` in the name. The second, is that `antlr-denter-1.2-SNAPSHOT.jar` must be part of your Java CLASSPATH in order to work with this new grammar. When compiling, files are built to `buildClean`.

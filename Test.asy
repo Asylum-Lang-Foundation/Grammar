@@ -152,4 +152,10 @@ pub fn main() {
         rgbColor: Color { red: 50, green: 200 },
         year: 2017
     };
+	myMultilineFunction(
+		"This is a string" +
+		"more data",
+		7,
+		myVar
+	);
 }
