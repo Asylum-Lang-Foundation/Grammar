@@ -377,20 +377,20 @@ expr_range
 
 // Unary expression.
 expr_unary
-	:	expr_primary									#ExprVisitPrimary
-	|	<assoc=right> OP_ADD expr_unary					#ExprPos
-	|	<assoc=right> OP_SUB expr_unary					#ExprNeg
-	|	<assoc=right> OP_NOT expr_unary					#ExprNot
-	|	<assoc=right> OP_TILDE expr_unary				#ExprBitNot
-	|	<assoc=right> OP_PLUS_PLUS expr_unary			#ExprPreIncrement
-	|	<assoc=right> OP_MINUS_MINUS expr_unary			#ExprPreDecrement
-	|	<assoc=right> OP_MEMBER_ACCESS expr_unary		#ExprMemberAccessUnary
-	|	<assoc=right> '(' expression ')' expression		#ExprCast
-	|	<assoc=right> AWAIT expression					#ExprAwait
-	|	<assoc=right> OP_ADDRESS_OF expr_unary			#ExprAddressOf
-	|	<assoc=right> OP_REFERENCE_POINTER expr_unary	#ExprAsReference
-	|	<assoc=right> OP_MUL expr_unary					#ExprDereference
-	|	defined_constants								#ExprDefinedConstant
+	:	expr_primary														#ExprVisitPrimary
+	|	<assoc=right> OP_ADD expr_unary										#ExprPos
+	|	<assoc=right> OP_SUB expr_unary										#ExprNeg
+	|	<assoc=right> OP_NOT expr_unary										#ExprNot
+	|	<assoc=right> OP_TILDE expr_unary									#ExprBitNot
+	|	<assoc=right> OP_PLUS_PLUS expr_unary								#ExprPreIncrement
+	|	<assoc=right> OP_MINUS_MINUS expr_unary								#ExprPreDecrement
+	|	<assoc=right> OP_MEMBER_ACCESS expr_unary							#ExprMemberAccessUnary
+	|	<assoc=right> '(' (expression | variable_type) ')' expression		#ExprCast
+	|	<assoc=right> AWAIT expression										#ExprAwait
+	|	<assoc=right> OP_ADDRESS_OF expr_unary								#ExprAddressOf
+	|	<assoc=right> OP_REFERENCE_POINTER expr_unary						#ExprAsReference
+	|	<assoc=right> OP_MUL expr_unary										#ExprDereference
+	|	defined_constants													#ExprDefinedConstant
 	;
 
 // Primary expression.
@@ -402,11 +402,11 @@ expr_primary
 	|	expr_primary OP_PLUS_PLUS									#ExprIncrement
 	|	expr_primary OP_MINUS_MINUS									#ExprDecrement
 	|	NEW expression												#ExprNew
-	|	TYPEOF '(' expression ')'									#ExprTypeof
-	|	DEFAULT '(' expression ')'									#ExprDefaultOf
+	|	TYPEOF '(' (expression | variable_type) ')'					#ExprTypeof
+	|	DEFAULT '(' (expression | variable_type) ')'				#ExprDefaultOf
 	|	DEFAULT														#ExprDefault
 	|	NAMEOF '(' expression ')'									#ExprNameof
-	|	SIZEOF '(' expression ')'									#ExprSizeof
+	|	SIZEOF '(' (expression | variable_type) ')'					#ExprSizeof
 	|	STACKALLOC expression										#ExprStackAlloc
 	;
 
@@ -476,6 +476,7 @@ variable_type
 	|	STATIC variable_type 										#VarTypeStatic
 	|	VOLATILE variable_type										#VarTypeVolatile
 	|	ATOMIC '<' variable_type '>'								#VarTypeAtomic
+	|	READONLY variable_type										#VarTypeReadOnly
 	|	variable_or_function										#VarTypeCustom
 	|	'This'														#VarTypeThis
 	;
@@ -592,6 +593,7 @@ OPERATOR:		'operator';
 PRIVATE:		'private' | 'pri';
 PROTECTED:		'protected' | 'pro';
 PUBLIC:			'public' | 'pub';
+READONLY:		'readonly';
 RETURN:			'return';
 SET:			'set';
 SIZEOF:			'sizeof';
