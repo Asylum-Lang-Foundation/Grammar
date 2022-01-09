@@ -107,7 +107,7 @@ interface_definition
 
 // Implementation declaration.
 implementation_definition
-	:	IMPL variable_or_function (FOR variable_type)? generic_definition? '{' implementation_entry* '}'
+	:	IMPL variable_type (FOR variable_type)? generic_definition? '{' implementation_entry* '}'
 	;
 
 // Implementation entry.
@@ -261,6 +261,7 @@ generic_definition
 generic_specifier
 	:	'<' variable_type (',' variable_type)* '>'
 	;
+/*
 
 // Expression.
 expression
@@ -300,6 +301,163 @@ unary_expression
 	: OP_ADD expression | OP_SUB expression | OP_NOT expression | OP_TILDE expression | OP_PLUS_PLUS expression | OP_MINUS_MINUS expression | OP_MEMBER_ACCESS expression | '(' variable_type ')' expression | OP_ADDRESS_OF expression | OP_REFERENCE_POINTER expression | OP_MUL expression | defined_constants
 	;
 
+*/
+
+// Expression. From lowest to highest precedence.
+expression
+	:	expr_comma	#ExprVisitComma
+	;
+
+// Comma expression.
+expr_comma
+	:	expr_assignment 				#ExprVisitAssignment
+	|	expr_comma ',' expr_assignment	#ExprComma
+	;
+
+// Assignment expression.
+expr_assignment
+	:	expr_lambda														#ExprVisitLambda
+	|	<assoc=right> expr_lambda assignment_operator expr_assignment	#ExprAssignment
+	;
+
+// Lamba expression.
+expr_lambda
+	:	expr_ternary						#ExprVisitTernary
+	|	expr_lambda OP_LAMBDA expr_ternary	#ExprLambda
+	;
+
+// Ternary expression.
+expr_ternary
+	:	expr_nullcheck													#ExprVisitNullCheck
+	|	<assoc=right> expr_nullcheck '?' expr_ternary ':' expr_ternary	#ExprTernary
+	;
+
+// Null check expression.
+expr_nullcheck
+	:	expr_or									#ExprVisitOr
+	|	expr_nullcheck OP_NULL_CHECK expr_or	#ExprNullCheck
+	;
+
+// Or expression.
+expr_or
+	:	expr_and				#ExprVisitAnd
+	|	expr_or OP_OR expr_and	#ExprOr
+	;
+
+// And expression.
+expr_and
+	:	expr_bit_or					#ExprVisitBitOr
+	|	expr_and OP_AND expr_bit_or	#ExprAnd
+	;
+
+// Bitwise or expression.
+expr_bit_or
+	:	expr_bit_xor							#ExprVisitBitXor
+	|	expr_bit_or OP_BITWISE_OR expr_bit_xor	#ExprBitOr
+	;
+
+// Bitwise xor expression.
+expr_bit_xor
+	:	expr_bit_and									#ExprVisitBitAnd
+	|	expr_bit_xor OP_MEMBER_ACCESS expr_bit_and		#ExprBitXor
+	;
+
+// Bitwise and expression.
+expr_bit_and
+	:	expr_equality_comparison								#ExprVisitEqualityComparison
+	|	expr_bit_and OP_ADDRESS_OF expr_equality_comparison		#ExprBitAnd
+	;
+
+// Equality comparison.
+expr_equality_comparison
+	:	expr_comparison												#ExprVisitComparison
+	|	expr_equality_comparison (OP_EQ | OP_NE) expr_comparison	#ExprEqualityComparison
+	;
+
+// Comparison expression.
+expr_comparison
+	:	expr_three_way_comparison															#ExprVisitThreeWayComparison
+	|	expr_comparison (OP_LT | OP_GT | OP_LE | OP_GE | IS | AS) expr_three_way_comparison	#ExprComparison
+	;
+
+// Three-way comparison expression.
+expr_three_way_comparison
+	:	expr_shift										#ExprVisitShift
+	|	expr_three_way_comparison (OP_CMP) expr_shift	#ExprThreeWayComparison
+	;
+
+// Shift expression.
+expr_shift
+	:	expr_additive										#ExprVisitAdditive
+	|	expr_shift (OP_LSHIFT | OP_RSHIFT) expr_additive	#ExprShift
+	;
+
+// Additive expression.
+expr_additive
+	:	expr_multiplicative									#ExprVisitMultiplicative
+	|	expr_additive (OP_ADD | OP_SUB) expr_multiplicative	#ExprAdditive
+	;
+
+// Multiplicative expression.
+expr_multiplicative
+	:	expr_exponential												#ExprVisitExponential
+	|	expr_multiplicative (OP_MUL | OP_DIV | OP_MOD) expr_exponential	#ExprMultiplicative
+	;
+
+// Exponential expression.
+expr_exponential
+	:	expr_range							#ExprVisitRange
+	|	expr_exponential OP_EXP expr_range	#ExprExponential
+	;
+
+// Range expression.
+expr_range
+	:	expr_unary										#ExprVisitUnary
+	|	expr_range (OP_RANGE | OP_RANGE_EQ) expr_unary	#ExprRange
+	;
+
+// Unary expression. <assoc=right>
+expr_unary
+	:	expr_primary
+	;
+
+// Primary expression.
+expr_primary
+	:	expr_parenthesis											#ExprVisitParenthesis
+	|	expr_primary '.' expr_parenthesis							#ExprMemberAccess
+	|	expr_primary generic_specifier? '(' expression ')'			#ExprFunctionCall
+	|	expr_primary '[' expression ']'								#ExprArrayAccess
+	|	expr_primary OP_PLUS_PLUS									#ExprIncrement
+	;
+
+/*
+// Primary expression.
+primary_expression
+	:	variable_or_function | constructor_with_initializers | function_call | NEW function_call |
+	TYPEOF '(' (variable_or_function | variable_type) ')' | SIZEOF '(' (variable_or_function | variable_type) ')'
+	;
+
+// Unary expression.
+unary_expression
+	: OP_ADD expression | OP_SUB expression | OP_NOT expression | OP_TILDE expression | OP_PLUS_PLUS expression
+	| OP_MINUS_MINUS expression | OP_MEMBER_ACCESS expression | '(' variable_type ')' expression | OP_ADDRESS_OF expression
+	| OP_REFERENCE_POINTER expression | OP_MUL expression | defined_constants
+	;
+*/
+
+// Parenthesis.
+expr_parenthesis
+	:	expr_end					#ExprVisitEnd
+	|	'(' expression ')'			#ExprParenthesis
+	;
+
+// Item expression.
+expr_end
+	:	IDENTIFIER	#ExprVariable
+	|	INTEGER		#ExprInteger
+	|	STRING		#ExprString
+	;
+
 // Access modifier.
 access_modifier
 	:	PUBLIC
@@ -318,12 +476,10 @@ variable_assignment
 
 // Variable declaration.
 variable_declaration
-	:	attribute* variable_parameter ('=' variable_parameter)* ASSIGN_OP_EQ NEW? (constructor_with_initializers | function_call)	#VariableDeclareWithInitializer
-	|	attribute* variable_parameter (',' variable_parameter)* ASSIGN_OP_EQ NEW? (constructor_with_initializers | function_call)	#VariableDeclareWithTupleInitializer
-	|	attribute* variable_parameter ('=' variable_parameter)* ASSIGN_OP_EQ expression 											#VariableDeclareWithInitializerExpr
-	|	attribute* variable_parameter (',' variable_parameter)* ASSIGN_OP_EQ expression												#VariableDeclareWithTupleInitializerExpr
-	|	attribute* variable_parameter (',' IDENTIFIER)*																				#VariableDeclareWithoutInitializer
-	|	attribute* variable_parameter (',' variable_parameter)*																		#VariableDeclareWithoutInitializerMultipleTypes
+	:	attribute* variable_parameter ('=' variable_parameter)* ASSIGN_OP_EQ expression 	#VariableDeclareWithInitializerExpr
+	|	attribute* variable_parameter (',' variable_parameter)* ASSIGN_OP_EQ expression		#VariableDeclareWithTupleInitializerExpr
+	|	attribute* variable_parameter (',' IDENTIFIER)*										#VariableDeclareWithoutInitializer
+	|	attribute* variable_parameter (',' variable_parameter)*								#VariableDeclareWithoutInitializerMultipleTypes
 	;
 
 // Label.
@@ -405,8 +561,10 @@ operator
 	|	OP_AND
 	|	OP_ADDRESS_OF
 	|	OP_BITWISE_OR
+	|	OP_CMP
 	|	OP_DIV
 	|	OP_EQ
+	|	OP_EXP
 	|	OP_GE
 	|	OP_GT
 	|	OP_LE
@@ -423,6 +581,7 @@ operator
 	|	OP_NOT
 	|	OP_PLUS_PLUS
 	|	OP_RANGE
+	|	OP_RANGE_EQ
 	|	OP_RSHIFT
 	|	OP_SUB
 	|	OP_TILDE
@@ -506,8 +665,10 @@ OP_ADD:					'+';
 OP_ADDRESS_OF:			'&';
 OP_AND:					'&&';
 OP_BITWISE_OR:			'|';
+OP_CMP:					'<=>';
 OP_DIV:					'/';
 OP_EQ:					'==';
+OP_EXP:					'**';
 OP_GE:					'>=';
 OP_GT:					'>';
 OP_LAMBDA:				'=>';
@@ -526,6 +687,7 @@ OP_NULL_CHECK:			'??';
 OP_OR:					'||';
 OP_PLUS_PLUS:			'++';
 OP_RANGE:				'..';
+OP_RANGE_EQ:			'..=';
 OP_REFERENCE_POINTER:	'@';
 OP_RET:					'->';
 OP_RSHIFT:				'>>';
