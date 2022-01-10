@@ -387,8 +387,8 @@ expr_unary
 	|	<assoc=right> OP_PLUS_PLUS expr_unary								#ExprPreIncrement
 	|	<assoc=right> OP_MINUS_MINUS expr_unary								#ExprPreDecrement
 	|	<assoc=right> OP_MEMBER_ACCESS expr_unary							#ExprMemberAccessUnary
-	|	<assoc=right> '(' (variable_type | expression) ')' expression		#ExprCast
-	|	<assoc=right> AWAIT expression										#ExprAwait
+	|	<assoc=right> '(' (variable_type | expression) ')'expr_unary		#ExprCast
+	|	<assoc=right> AWAIT expr_unary										#ExprAwait
 	|	<assoc=right> OP_ADDRESS_OF expr_unary								#ExprAddressOf
 	|	<assoc=right> OP_REFERENCE_POINTER expr_unary						#ExprAsReference
 	|	<assoc=right> OP_MUL expr_unary										#ExprDereference
