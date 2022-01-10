@@ -2,6 +2,8 @@ grammar Asylum;
 
 /*
 	To Do List:
+        * NAND, NOR to expressions as well as !? and !?= (not null).
+        * More Null Check Operators? (?.)
 		* Embedded Functions
 		* Macros?
 
@@ -385,7 +387,7 @@ expr_unary
 	|	<assoc=right> OP_PLUS_PLUS expr_unary								#ExprPreIncrement
 	|	<assoc=right> OP_MINUS_MINUS expr_unary								#ExprPreDecrement
 	|	<assoc=right> OP_MEMBER_ACCESS expr_unary							#ExprMemberAccessUnary
-	|	<assoc=right> '(' (expression | variable_type) ')' expression		#ExprCast
+	|	<assoc=right> '(' (variable_type | expression) ')' expression		#ExprCast
 	|	<assoc=right> AWAIT expression										#ExprAwait
 	|	<assoc=right> OP_ADDRESS_OF expr_unary								#ExprAddressOf
 	|	<assoc=right> OP_REFERENCE_POINTER expr_unary						#ExprAsReference
@@ -402,11 +404,11 @@ expr_primary
 	|	expr_primary OP_PLUS_PLUS									#ExprIncrement
 	|	expr_primary OP_MINUS_MINUS									#ExprDecrement
 	|	NEW expression												#ExprNew
-	|	TYPEOF '(' (expression | variable_type) ')'					#ExprTypeof
-	|	DEFAULT '(' (expression | variable_type) ')'				#ExprDefaultOf
+	|	TYPEOF '(' (variable_type | expression) ')'					#ExprTypeof
+	|	DEFAULT '(' (variable_type | expression) ')'				#ExprDefaultOf
 	|	DEFAULT														#ExprDefault
 	|	NAMEOF '(' expression ')'									#ExprNameof
-	|	SIZEOF '(' (expression | variable_type) ')'					#ExprSizeof
+	|	SIZEOF '(' (variable_type | expression) ')'					#ExprSizeof
 	|	STACKALLOC expression										#ExprStackAlloc
 	;
 
