@@ -302,8 +302,8 @@ generic_definition
 
 // Generic definition item.
 generic_definition_item
-	:	concept_definition IDENTIFIER		#GenericDefinitionItemConcept
-	|	generic_specifier_item				#GenericDefinitionItemSpecifier
+	:	concept_definition '...'? IDENTIFIER	#GenericDefinitionItemConcept
+	|	generic_specifier_item					#GenericDefinitionItemSpecifier
 	;
 
 // Generic specifier.

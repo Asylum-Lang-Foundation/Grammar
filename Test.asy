@@ -49,6 +49,10 @@ impl MyDerived {
 	pub fn add<number T, 3>(T a, AddAble b) -> T => a + b;
 }
 
+fn testVariadic<struct... T>() {
+	// Code.
+}
+
 pub static inline fn withLabels(myText: string str, int number) {
 	printf(str + " " + number + "\n");
 }
