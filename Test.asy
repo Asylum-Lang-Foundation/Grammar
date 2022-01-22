@@ -53,6 +53,11 @@ fn testVariadic<struct... T>() {
 	// Code.
 }
 
+struct Map<struct K, struct V, struct<struct> C> {
+  C<K> key;
+  C<V> value;
+}
+
 pub static inline fn withLabels(myText: string str, int number) {
 	printf(str + " " + number + "\n");
 }
@@ -84,6 +89,9 @@ pub fn variadicFunction(u32 ... args) {
 }
 
 pub fn main() {
+	int dec = -0x34u;
+	float fp = .48;
+	fix12x4 fx = 0b110.010x;
 	printf("Hello World!\n");
 	{
 		printf("Also legal.\n");
