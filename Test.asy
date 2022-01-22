@@ -43,8 +43,10 @@ impl MyBase {
 	pub fn basic() -> u32 => 3;
 }
 
+concept number = unsigned | signed | fixed | floating;
+concept implementSomething = (struct : Something, SomethingElse) | floating;
 impl MyDerived {
-	pub fn add<T: unsigned | signed | fixed | floating | object, AddAble>(T a, T b) -> T => a + b;
+	pub fn add<number T, 3>(T a, AddAble b) -> T => a + b;
 }
 
 pub static inline fn withLabels(myText: string str, int number) {
@@ -92,7 +94,7 @@ pub fn main() {
 	do
 		i++;
 	while (i < 4);
-	withLabels(number: 7, myText: "Hi");
+	//withLabels(number: 7, myText: "Hi");
 	for (i = 0; i < 7; i++) {
 		printf("%d\n", i);
 	}
