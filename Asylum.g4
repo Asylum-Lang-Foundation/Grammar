@@ -285,14 +285,13 @@ concept_definition_and
 
 // Concent definition factor.
 concept_definition_factor
-	:	STRUCT ':' concept_definition							#ConceptDefinitionStructImplements
-	|	'(' concept_definition ')'								#ConceptDefinitionParenthesis
-	|	STRUCT													#ConceptDefinitionStruct
-	|	variable_type											#ConceptDefinitionVarType
-	|	'unsigned'												#ConceptDefinitionUnsigned
-	|	'signed'												#ConceptDefinitionSigned
-	|	'floating'												#ConceptDefinitionFloating
-	|	'fixed'													#ConceptDefinitionFixed
+	:	STRUCT ('<' concept_definition (',' concept_definition)* '>')? (':' concept_definition)?	#ConceptDefinitionStructImplements
+	|	'(' concept_definition ')'																	#ConceptDefinitionParenthesis
+	|	variable_type																				#ConceptDefinitionVarType
+	|	'unsigned'																					#ConceptDefinitionUnsigned
+	|	'signed'																					#ConceptDefinitionSigned
+	|	'floating'																					#ConceptDefinitionFloating
+	|	'fixed'																						#ConceptDefinitionFixed
 	;
 
 // Generic definition.
@@ -478,6 +477,8 @@ expr_parenthesis
 expr_end
 	:	IDENTIFIER	#ExprVariable
 	|	INTEGER		#ExprInteger
+	|	FLOATINGVAL	#ExprFloating
+	|	FIXEDVAL	#ExprFixed
 	|	STRING		#ExprString
 	;
 
@@ -734,12 +735,29 @@ FIXED
 	:	'fix' DecDigit+ 'x' DecDigit+
 	;
 
-// Whole nubmer.
+// Whole number.
 INTEGER
-	:	'-'? DecDigit+
-	|	'-'? '0x' HexDigit+
-	|	'-'? '0b' BinDigit+
-	|	'-'? DecDigit IntegerTypeSuffix
+	:	DecDigit+ IntegerTypeSuffix?
+	|	'0x' HexDigit+ IntegerTypeSuffix?
+	|	'0b' BinDigit+ IntegerTypeSuffix?
+	;
+
+// Fractional number.
+FLOATINGVAL
+	:	DecDigit+ FloatingTypeSuffix
+	|	DecDigit+ '.' DecDigit+ FloatingTypeSuffix?
+	|	'.' DecDigit+ FloatingTypeSuffix?
+	|	'0x' HexDigit+ '.' HexDigit* FloatingTypeSuffix?
+	|	'0b' BinDigit+ '.' BinDigit* FloatingTypeSuffix?
+	;
+
+// Fixed number.
+FIXEDVAL
+	:	DecDigit+ FixedTypeSuffix
+	|	DecDigit+ '.' DecDigit+ FixedTypeSuffix
+	|	'.' DecDigit+ FixedTypeSuffix
+	|	'0x' HexDigit+ '.' HexDigit* FixedTypeSuffix
+	|	'0b' BinDigit+ '.' BinDigit* FixedTypeSuffix
 	;
 
 // Basic blocks.
@@ -762,6 +780,8 @@ fragment NewLineCharacter
 	;
 
 fragment IntegerTypeSuffix:         [uU] | [sS];
+fragment FloatingTypeSuffix:		[fF];
+fragment FixedTypeSuffix:			[xX];
 fragment HexDigit: 					[0-9] | [A-F] | [a-f];
 fragment BinDigit: 					[0-1];
 fragment DecDigit:					[0-9];
